@@ -1,0 +1,215 @@
+#! /usr/bin/env perl
+use strict;
+use warnings;
+no warnings 'uninitialized';
+require 5.6.0;
+use Term::ANSIColor qw(:constants);
+use POSIX qw(ceil);
+our $VERSION = 1.0.4;
+
+sub usage
+{
+    print RED, "\n";
+    print <<"_USAGE_";
+    modsearch -[options] [search-path] [search-word1] [search-word2] ...
+
+    [options]
+        -g ... マッチ行全てを結果表示
+        -i ... 大文字小文字同一視
+        -b ... ファイルの内容を探索
+        -n ... ファイルの名称を探索
+
+    [search-path]
+        探索対象ディレクトリ。
+        絶対パス or カレントからの相対パス
+
+    [search-word1, 2, 3...]
+        正規表現
+
+    [extensions]
+        対象拡張子を制限
+            ex: [[pl txt]]
+
+_USAGE_
+    print CLEAR, "\n"
+}
+
+sub get_options(\@\%\@)
+{
+    my($values, $options, $extensions) = @_;
+    my $extension_flag = 0;
+    for my $param(@ARGV) {
+        if($extension_flag == 0 and $param =~ /^\[\[/) {
+            $extension_flag = 1;
+        } elsif($extension_flag == 1 and $param =~ /\]\]$/) {
+            $extension_flag = 2;
+        }
+        if($extension_flag) {
+            $param =~ s/^\[\[//;
+            $param =~ s/^\.//;
+            $param =~ s/\]\]$//;
+            push @$extensions, $param if length $param;
+            $extension_flag == 2 and $extension_flag = 0;
+        } else {
+            if($param =~ /^-(\w+)/) {
+                my $option_s = lc $1;
+                for my $option(split //, $option_s) {
+                    $options->{$option} = 1
+                }
+            } else {
+                push @$values, $param
+            }
+        }
+    }
+}
+
+sub filename
+{
+    my($path) = @_;
+    my @dirs = split m!/!, $path;
+    pop @dirs
+}
+sub is_not_target_extensions
+{
+    my($file, $extensions) = @_;
+    scalar(@$extensions) < 1 and return undef;
+    for my $extension(@$extensions) {
+        $file =~ /\.$extension$/ and return undef
+    }
+    1
+}
+
+sub filelist
+{
+    my($path,$options,$words,$hash,$extensions) = @_;
+    $path =~ s{/$}{};
+    my @list = glob $path . '/*';
+
+    for my $file(@list) {
+        if($file eq '.' or $file eq '..') {
+            next;
+        } elsif(-d $file) {
+            filelist($file, $options, $words, $hash,$extensions)
+        } elsif(is_not_target_extensions($file, $extensions)) {
+            next;
+        } else {
+            my $string;
+            if($options->{'n'}) {
+                $string = filename($file)
+            } else {
+                open my $fh, '<', $file or next;
+                my $buf;
+                while(read $fh, $buf, 1) {
+                    $string .= $buf;
+                }
+                close $fh
+            }
+            my $matched_flag = undef;
+            my @matched_strings = ();
+
+            for my $word(@$words) {
+                if(exists $options->{'g'}) {
+                    $matched_flag = undef;
+                    while($string =~ /$word/g) {
+                        $matched_flag = 1;
+                        push @matched_strings, $1;
+                    }
+                    $matched_flag or last
+                } else {
+                    if($string =~ $word) {
+                        $matched_flag = 1;
+                        push @matched_strings, $1
+                    } else {
+                        $matched_flag = undef;
+                        last
+                    }
+                }
+            }
+            $matched_flag and $hash->{$file} = join "\n", @matched_strings
+        }
+    }
+}
+
+
+sub main
+{
+
+    my(@values, %options, @extensions);
+    get_options(@values, %options, @extensions);
+    my($parent_path, @words) = @values;
+    $parent_path =~ s{/+$}{};
+    for (@words) {
+        if(exists $options{'i'}) {
+            $_ = qr/(.*?$_.*)/i
+        } else {
+            $_ = qr/(.*?$_.*)/
+        }
+    }
+    if(exists $options{'h'} or 2 > scalar @values) {
+        usage
+    } elsif(not -d $parent_path) {
+        print RED, 'Directory ' . $parent_path . " is not found";
+        print CLEAR, "\n"
+    } else {
+        my %files;
+        filelist($parent_path,\%options,\@words,\%files,\@extensions);
+        my $cnt = ceil(scalar keys %files);
+        my $result = $cnt == 0 ? 'no files are' :
+                     $cnt == 1 ? '1 file is'  : "$cnt files are";
+        print YELLOW "$result found.";
+        print CLEAR "\n";
+        for my $fname(sort keys %files) {
+            print CYAN, $fname . "\n";
+            print CLEAR, "    " .  $files{$fname} . "\n"
+        }
+    }
+}
+
+main;
+1
+
+__END__
+
+=head1 NAME
+
+  modsearch - fulltext, fulllist module search engine.
+
+
+=head1 SYNOPSIS
+
+  modsearch /usr/local/lib -i latex
+
+
+=head1 DESCRIPTION
+
+  ファイルの中身を正規表現で探索します。
+  第1引数は探索path、第2引数以降は正規表現。複数語の検索はAND検索。
+  メタ文字を含む場合はシングルクォートで囲って下さい。
+
+      ex: modsearch /usr/share/perl/ 'sub\s+benchmark' 'sub\s+phaser'
+
+  -gまたは-Gオプションで全件マッチ（マッチ文字列を全て結果表示）、
+  -iまたは-Iオプションで大文字小文字同一視。
+  -nオプションでファイル名を探索します。
+  複数のオプションを続けて記述できます。
+
+      ex: modsearch -gib /usr/share/perl/ 'sub\s+benchmark' 'sub\s+phaser'
+
+  コマンドラインの末尾に[[...]]を記述すると検索対象の拡張子を絞り込めます。
+
+      ex: modsearch -gib /tmp '/usr/bin/env\s' [[pl py rb php]]
+
+  探索PATHが探索語よりも先に、対象拡張子が末尾に書かれていれば他は順序不問です。
+
+      ex: modsearch /usr/share/perl/ -g 'sub\s+benchmark' 'sub\s+phaser' -i [[pm pl]]
+
+
+=head1 AUTHOR
+
+   LightningDAISY <webmaster@umr.biz>
+
+
+=head1 LICENCE AND COPYRIGHT
+
+  Copyright (C) 2007-2013 LightningDAISY. All right reserved.
+
