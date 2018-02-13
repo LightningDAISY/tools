@@ -1,0 +1,22 @@
+#! /usr/bin/env perl
+while($line = <stdin>)
+{
+	print $line and $buf{$line} = 1 if not exists $buf{$line}
+}
+1
+
+__END__
+
+INSTALL
+
+$ sudo cp uniqall /usr/bin/
+
+SYNOPSIS
+
+$ cat authors.txt | uniqall
+
+it means as follows.
+
+$ cat authors.txt | sort | uniq
+$ sort authors.txt | uniq
+
