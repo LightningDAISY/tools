@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use FindBin;
+use Fadi::Migration;
+use lib "$FindBin::RealBin/lib";
+
+my $configPath = "$FindBin::RealBin/migration.yml";
+
+Fadi::Migration->new->cli(
+	baseDir => $FindBin::RealBin,
+	config  => $configPath,
+)
+
+__END__
