@@ -20,7 +20,6 @@ sub randomString
 	my($self, $max, $min, $length) = @_;
 	$min ||= 1;
 	$length ||= int(rand($max - $min + 1)) + $min;
-say "LENGTH : " . $length;
 	my $result = "";
 	for(my $i=$length; $i; $i--)
 	{
