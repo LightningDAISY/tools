@@ -1,10 +1,14 @@
 package Fadi::Migration::Seeder::Kanji;
 use strict;
 use warnings;
+use feature qw{ say };
+
+my @chars;
 
 sub new
 {
 	my($class, %args) = @_;
+	@chars = split /,/, <DATA>;
 	bless \%args, $class
 }
 
@@ -15,8 +19,8 @@ sub randomString
 {
 	my($self, $max, $min, $length) = @_;
 	$min ||= 1;
-	my @chars = split /,/, <DATA>;
-	$length ||= int(rand($max - $min)) + $min + 1;
+	$length ||= int(rand($max - $min + 1)) + $min;
+say "LENGTH : " . $length;
 	my $result = "";
 	for(my $i=$length; $i; $i--)
 	{

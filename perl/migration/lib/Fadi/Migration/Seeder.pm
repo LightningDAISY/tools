@@ -201,7 +201,7 @@ sub _minMaxType
 		else
 		{
 			%result = (
-				max  => $mysqlTypes{$type}{"max"},
+				max  => $2 || $mysqlTypes{$type}{"max"},
 				min  => 0,
 				type => $mysqlTypes{$type}{"type"},
 			);
@@ -214,7 +214,7 @@ sub _minMaxType
 			type => $type,
 		);
 	}
-	elsif($columnType =~ /enum(\(.+\))/)
+	elsif($columnType =~ /(?:enum|set)(\(.+\))/)
 	{
 		my @arr = eval $1;
 		%result = (

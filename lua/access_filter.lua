@@ -55,8 +55,11 @@ function main()
 		end
 	end
 	--redisTest(red)
-	runFilters(red)
-	return ngx.OK
+	--runFilters(red)
+
+	--ngx.redirect("https://yahoo.co.jp/", HTTP_MOVED_TEMPORARILY)
+	ngx.exit()
+	--return ngx.OK
 end
 
 return main()
