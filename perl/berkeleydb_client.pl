@@ -121,7 +121,7 @@ sub commandList
 	{
 		say GREEN, "$cli) ", CLEAR, $commands{$cli}{"description"};
 	}
-	print "input number (and a key): ";
+	print "cli: ";
 	my $in = <STDIN>;
 	chomp $in;
 	goto RETRYCOMMAND if $in !~ /^(\w+)\s*(.*)/;
