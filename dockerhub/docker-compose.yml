@@ -1,0 +1,43 @@
+version: "3"
+services:
+  nginx:
+    container_name: openresty-compose
+    image: lightningdaisy/develop:latest
+    #stdin_open: true
+    tty: true
+    networks:
+      - frontend
+    command: supervisord -c /etc/supervisor/supervisord.conf
+    volumes:
+      - "/var/www:/var/www"
+    ports: 
+      - "8000:80"
+      - "8080:8080"
+      - "50022:22"
+    environment:
+      TZ: Asia/Tokyo
+      env: develop
+
+  mysql:
+    build: ./mysql/
+    container_name: mysql-compose
+    image: lightningdaisy/mysql:latest
+    stdin_open: true
+    tty: true
+    networks:
+      - frontend
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      env: develop
+      TZ: Asia/Tokyo
+      BIND-ADDRESS: 0.0.0.0
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: service
+      MYSQL_USER: service
+      MYSQL_PASSWORD: oRangeaNdaPple
+
+networks:
+  frontend:
+
