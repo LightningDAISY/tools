@@ -1,0 +1,101 @@
+#! /usr/bin/env perl
+use strict;
+use warnings;
+use FindBin;
+use Data::Dumper;
+use feature qw{ say };
+
+my $baseDir = $FindBin::Bin;
+my $debugLogName = "debug.log";
+my $checkoutDir = '/tmp/checkout';
+
+sub now
+{
+	my($sec, $min, $hour, $day, $month, $year) = localtime;
+	sprintf "%d-%02d-%02d %02d:%02d:%02d", $year+1900, $month+1, $day, $hour, $min, $sec
+}
+
+sub debug
+{
+	my($str) = @_;
+	my $path = $baseDir . "/" . $debugLogName;
+	open my $fh, ">>", $path or die "cannot write $path";
+	printf $fh "[%s] %s\n", now(), $str;
+	close $fh
+}
+
+sub getHashAndRefs
+{
+	my $in = '';
+	while(my $line = <STDIN>)
+	{
+		$in .= $line
+	}
+	return if not $in;
+	# $in ex.
+	# 	e41de1fc77bf6d9faed256e4085074c90cca8967 641e4ed2bf3a45da5c63bf9e4b7ff41adf0fe0ed refs/heads/master	
+	#
+	split m!\s+!, $in, 3
+}
+
+sub refs2name
+{
+	my($refs) = @_;
+	my $result = `git rev-parse --symbolic --abbrev-ref $refs`;
+	chomp $result;
+	$result
+}
+
+#
+# ex. 
+# {
+#	'M' => ['file1'],
+#	'A' => [],
+#	'D' => ['file2', 'file3']
+# }
+#
+sub hash2files
+{
+	my($from, $to) = @_;
+	my $result = `git diff --name-status $from $to`;
+	chomp $result;
+	my @rows = split /\r?\n/, $result;
+	my %return = (
+		"A" => [],
+		"M" => [],
+		"D" => [],
+	);
+	for my $row(@rows)
+	{
+		my($status, $name) = split /\s+/, $row, 2;
+		push @{$return{$status}}, $name if exists $return{$status};
+	}
+	\%return
+}
+
+sub checkout
+{
+	my($files) = @_;
+	`mkdir -p 0755 $checkoutDir` if not -d $checkoutDir;
+	`git --work-tree=$checkoutDir --git-dir=$baseDir/../ checkout -f`;
+}
+
+sub main
+{
+	my($fromHash, $toHash, $branchRefs) = getHashAndRefs;
+	die "invalid parameter" if not $fromHash or not $toHash or not $branchRefs;
+	my $branchName = refs2name($branchRefs);
+	my $files = hash2files($fromHash, $toHash);
+	debug "From: "  . $fromHash   if $fromHash;
+	debug "to  : "  . $toHash     if $toHash;
+	debug "name: "  . $branchName if $branchName;
+	debug "files: " . Dumper($files) if $files;
+
+	checkout($files);
+}
+
+main;
+1
+
+__END__
+
