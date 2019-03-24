@@ -1,0 +1,146 @@
+#! /usr/bin/env perl
+use strict;
+use warnings;
+use Cwd ();
+use File::Path ();
+use feature qw{ say };
+
+my $currentDir = Cwd::getcwd() . "/";
+my $trashDir   = '/trashbox';
+my $options = {};
+my $gcDays = 10;
+
+sub usage
+{
+  say STDERR qq|\n
+Usage: rl -[rRfF] FILENAME FILENAME* DIRNAME DIRNAME/*...
+
+Unlink the FILE(s),
+  and send them to your trashbox($trashDir)
+
+  -f, -F  ignore nonexistent files and arguments, never prompt
+  -r, -R  remove directories and their contents recursively
+
+By default, rl does not remove directories.  Use -r\n|;
+  exit 1
+}
+
+sub error
+{
+  my($message) = @_;
+  say STDERR $message, "\n";
+  usage
+}
+
+sub parseOptions
+{
+  my %result;
+  for my $arg(@ARGV)
+  {
+    next if $arg !~ m!^\-(\w+)!;
+    my @options = split //, $1;
+    for my $option(@options)
+    {
+      $result{lc $option} = 1;
+    }
+  }
+  \%result
+}
+
+sub parseNames
+{
+  my @result;
+  for my $arg(@ARGV)
+  {
+    if($arg !~ m!^\-!)
+    {
+      $arg =~ s!/+$!!;
+      push @result, $arg
+    }
+  }
+  scalar @result ? \@result : undef
+}
+
+sub getFileNames
+{
+  my($names) = @_;
+  my @result;
+  for my $name(@$names)
+  {
+    my $path = $name =~ m!^/! ? $name : ($currentDir . $name);
+    push @result, $path;
+  }
+  \@result
+}
+
+sub answerYes
+{
+  my($message) = @_;
+  print $message . "[y/N] ";
+  my $answer = <STDIN>;
+  $answer =~ m!^y!i
+}
+
+sub chute
+{
+  my($fileList) = @_;
+  use Data::Dumper;
+  my $now = time;
+  for my $file(@$fileList)
+  {
+    if(not $options->{"r"} and -d $file)
+    {
+      error "$file is directory."
+    }
+    if(not -l $file and not -w $file)
+    {
+      error "cannot remove $file"
+    }
+    if(not $options->{"r"} and not $options->{"f"} and not answerYes "remove $file ? ")
+    {
+      say "skipped";
+      next
+    }
+    if(-d $file)
+    {
+      File::Path::mkpath $trashDir . $file;
+      my @fileList = glob $file . "/*";
+      chute(\@fileList);
+      File::Path::remove_tree $file
+    }
+    elsif($file eq $trashDir . $file)
+    {
+       unlink $file
+    }
+    else
+    {
+      link $file, $trashDir . $file;
+      unlink $file;
+      utime($now, $now, $trashDir . $file)
+    }
+  }
+}
+
+sub garbageCollection
+{
+  my @files = glob $trashDir . "/*";
+  my $limit = time - $gcDays * 24 * 3600;
+  for my $file(@files)
+  {
+    my $mtime = (stat $file)[9];
+    $mtime < $limit and unlink $file;
+  }
+}
+
+sub main
+{
+  garbageCollection;
+  $options  = parseOptions or usage;
+  my $names = parseNames or usage;
+  my $files = getFileNames($names);
+  chute $files;
+}
+
+main;
+1
+
