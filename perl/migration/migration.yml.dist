@@ -1,6 +1,6 @@
 auth:
   local:
-    adidas:
+    UrDBName:
       username: UrUsername
       password: UrPassword
       hostname: 127.0.0.1
