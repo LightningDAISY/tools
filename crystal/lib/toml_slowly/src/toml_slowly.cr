@@ -17,13 +17,13 @@ end
 #  
 #  def main()
 #    toml_string = %(
-#  [default.a]
+#  [ default.a ]
 #  title = "TOML Example"
-# 
-#  [default.b]
-#  [owner]
-#  name = "Lance Uppercut"
-#  dob = 1979-05-27T07:32:00Z
+#
+#  [ default.b ]
+#  [ great.owner ]
+#  good.name = "Lance Uppercut"
+#  nice.dob = 1979-05-27T07:32:00Z
 #  )
 # 
 #  hash = TOML_Slowly.parse(toml_string)
@@ -34,6 +34,6 @@ end
 #
 # Result:
 #
-#  {"default.a.title" => "TOML Example", "owner.name" => "Lance Uppercut", "owner.dob" => "1979-05-27T07:32:00Z"}
+#  {"default.a.title" => "TOML Example", "great.owner.good.name" => "Lance Uppercut", "great.owner.nice.dob" => "1979-05-27T07:32:00Z"}
 #
 
