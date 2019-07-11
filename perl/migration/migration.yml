@@ -1,12 +1,11 @@
 auth:
   local:
-    adidas:
-      username: UrUsername
-      password: UrPassword
-      hostname: 127.0.0.1
+    service:
+      username: service
+      password: oRangeaNdaPple
+      hostname: e4d185cbaabe
       port: 3306
-      schema: UrDBName
-
+      schema: service
 dir:
   env_name: site_env
   table: tables
