@@ -1,9 +1,9 @@
 auth:
   local:
     service:
-      username: service
-      password: oRangeaNdaPple
-      hostname: e4d185cbaabe
+      username: USERNAME
+      password: PASSWORD
+      hostname: HOSTNAME
       port: 3306
       schema: service
 dir:

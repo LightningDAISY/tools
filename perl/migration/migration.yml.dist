@@ -1,11 +1,11 @@
 auth:
   local:
-    service:
-      username: USERNAME
-      password: PASSWORD
-      hostname: HOSTNAME
+    UrDBName:
+      username: UrUsername
+      password: UrPassword
+      hostname: 127.0.0.1
       port: 3306
-      schema: service
+      schema: UrDBName
 dir:
   env_name: site_env
   table: tables
