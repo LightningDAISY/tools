@@ -1,9 +1,6 @@
 #! /usr/bin/env python3
 # coding: UTF-8
-import re
-import sys
-import os
-import subprocess
+import re, sys, os, subprocess
 
 files_dir = "datafiles"
 cpan_name_file = "cpan-list.txt"
@@ -49,7 +46,7 @@ def createAptSource():
         print(
             "\033[1;35;40mcreate apt source {file}\033[0;37;40m".format(file=source_filename)
         )
-        res = subprocess.run(["apt", "search", "^lib.+-perl"], stdout=subprocess.PIPE, stderr=None)
+        res = subprocess.run(["/usr/bin/apt", "search", "^lib.+-perl"], stdout=subprocess.PIPE, stderr=None)
         fp = open(source_filename, "w")
         fp.write(res.stdout.decode("utf-8"))
         fp.close()
