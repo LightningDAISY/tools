@@ -25,12 +25,17 @@ def toAptName(name):
     name = "lib" + re.sub("::", "-", name) + "-perl"
     return name
 
+def toAptRegexp(name):
+    name =  name.lower()
+    regexp = re.compile("^lib" + re.sub("::", "-", name) + "(?:-pm)?-perl")
+    return regexp
+
 def searchApt(name):
     if len(name) < 1:
         return None
-    name = toAptName(name)
+    regexp = toAptRegexp(name)
     for apt_module in apt_modules:
-        if re.search("^" + name, apt_module):
+        if re.search(regexp, apt_module):
             return apt_module
     return None
 
