@@ -1,0 +1,91 @@
+#! /usr/bin/env ruby
+#
+# MySQL start/stop script
+# 
+#  ex. $ sudo ./mysql start
+#      $ sudo ./mysql stop
+#      $ sudo ./mysql start --verbose
+#
+module MySQLControl
+  @user = "mysql"
+  @dataDir = "/var/lib/mysql"
+  @pidPath = "/var/run/mysqld/mysqld.pid"
+  @mycnfPath = "/etc/mysql/my.cnf"
+  @serverName = "mysqld"
+  @logfilePath = "/var/log/mysqld/general.log"
+  @errorLogfilePath = "/var/log/mysqld/error.log"
+
+  def self.parseArgs(args=[])
+    @method = args.shift
+    @options = args
+
+    # --default-flie=~ must be at the first.
+    @options << "--defaults-file=#{@mycnfPath}" if @mycnfPath
+    @options << "--user=#{@user}" if @user
+    @options << "--general_log_file=#{@logfilePath}" if @logfilePath
+    @options << "--log_error=#{@errorLogfilePath}" if @errorLogfilePath
+    @options << "--datadir=#{@dataDir}" if @dataDir
+
+    @option = @options.join " "
+    raise unless @method
+    raise "invalid method #{@method}" if @method.upcase !~ /^(?:START|STOP|RESTART)$/
+  end
+
+  def self.isStarted?
+    File.exist? @pidPath
+  end
+
+  def self.getPid
+    pid = File.read @pidPath
+    pid.to_i
+  end
+
+  def self.start
+    raise "MySQLd is started." if isStarted?
+    cmd = "#{@serverName} #{@option} &"
+    spawn cmd
+  end
+
+  def self.stop
+    raise "MySQLd is not running." unless isStarted?
+    `kill #{getPid}`
+    puts "MySQLd is shutting down." unless isStarted?
+  end
+
+  def self.restart
+    stop
+    start
+  end
+
+  def self.main(args)
+    raise "retry with sudo." if Process.uid > 0
+    parseArgs args
+
+    case @method.upcase
+    when "START"
+      start
+    when "STOP"
+      stop
+    when "RESTART"
+      restart
+    else
+      raise "invalid method #{@method}"
+    end
+  end
+
+end
+
+def usage(errorMessage="")
+  if errorMessage.size > 0
+    puts "\nError:"
+    puts "  #{errorMessage}\n"
+  end
+  puts "USAGE:"
+  puts "  #{$0} [start|stop|restart] [mysqld options]\n"
+end
+
+begin
+  MySQLControl.main ARGV
+rescue => e
+  usage e.message
+end
